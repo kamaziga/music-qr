@@ -22,7 +22,7 @@ body {
   padding: 20px;
 }
 
-/* ===== Анимированный фон ===== */
+/* ===== Фоновые живые круги ===== */
 .bg-animation {
   position: fixed;
   top: 0;
@@ -37,7 +37,7 @@ body {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.15;
+  opacity: 0.12;
   animation: float 20s infinite ease-in-out;
 }
 
@@ -47,7 +47,6 @@ body {
   background: #6c63ff;
   top: -200px;
   left: -200px;
-  animation-delay: 0s;
 }
 
 .circle2 {
@@ -80,24 +79,19 @@ body {
   display: flex;
   width: 100%;
   max-width: 1300px;
-  background: rgba(20, 20, 43, 0.7);
-  backdrop-filter: blur(20px);
+  background: rgba(20, 20, 43, 0.65);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-  animation: fadeInUp 0.8s ease;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ===== Боковая панель ===== */
+/* ===== Сайдбар ===== */
 .sidebar {
   width: 320px;
-  background: rgba(18, 18, 40, 0.8);
+  background: rgba(18, 18, 40, 0.7);
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
@@ -132,7 +126,7 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Зона загрузки */
+/* Загрузка */
 .upload-area {
   margin-bottom: 24px;
   display: flex;
@@ -170,16 +164,10 @@ body {
   color: #fff;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.3s;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-}
-
-.upload-btn-side:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(108, 99, 255, 0.4);
 }
 
 .upload-btn-side:disabled {
@@ -215,7 +203,6 @@ body {
   font-size: 0.8rem;
   cursor: pointer;
   opacity: 0.8;
-  transition: opacity 0.2s;
 }
 
 .clear-btn:hover {
@@ -236,13 +223,8 @@ body {
   padding: 10px 12px;
   border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.2s;
   margin-bottom: 4px;
-}
-
-.playlist-item:hover {
-  background: rgba(255, 255, 255, 0.03);
-  transform: translateX(4px);
 }
 
 .playlist-item.active {
@@ -282,19 +264,19 @@ body {
   font-size: 0.9rem;
 }
 
-/* Скроллбар для плейлиста */
+/* Стилизованный скролл */
 .playlist-items::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 .playlist-items::-webkit-scrollbar-track {
   background: transparent;
 }
 .playlist-items::-webkit-scrollbar-thumb {
-  background: #3a3a5a;
-  border-radius: 4px;
+  background: linear-gradient(180deg, #6c63ff, #a855f7);
+  border-radius: 10px;
 }
 
-/* ===== Основной контент ===== */
+/* ===== Главный контент ===== */
 .main-content {
   flex: 1;
   padding: 40px;
@@ -306,12 +288,6 @@ body {
 .player-card {
   width: 100%;
   max-width: 600px;
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 .cover-section {
@@ -328,12 +304,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.5);
   margin-bottom: 16px;
-  transition: transform 0.3s;
-}
-.cover-art:hover {
-  transform: scale(1.02);
+  transition: box-shadow 0.3s;
 }
 
 .cover-text {
@@ -369,10 +341,6 @@ body {
   color: #e4e4f0;
 }
 
-.track-actions {
-  margin-bottom: 20px;
-}
-
 .action-btn {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
@@ -380,17 +348,11 @@ body {
   padding: 8px 18px;
   color: #b0b0cc;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
   font-size: 0.9rem;
+  margin-bottom: 20px;
 }
 
-.action-btn:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: #6c63ff;
-  color: #fff;
-}
-
-/* Плеер контролы */
 .player-controls {
   margin: 20px 0;
 }
@@ -437,16 +399,9 @@ body {
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.3s;
   margin-top: 10px;
 }
 
-.play-btn-main:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 25px rgba(108, 99, 255, 0.5);
-}
-
-/* QR секция */
 .qr-section {
   display: flex;
   flex-direction: column;
@@ -470,16 +425,8 @@ body {
   background: transparent;
   color: #b0b0cc;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.btn-outline:hover {
-  border-color: #6c63ff;
-  color: #fff;
-  background: rgba(108,99,255,0.1);
-}
-
-/* Пустое состояние */
 .empty-state {
   text-align: center;
   opacity: 0.7;
@@ -495,7 +442,7 @@ body {
   color: #aaa;
 }
 
-/* ===== Адаптивность ===== */
+/* Адаптив */
 @media (max-width: 900px) {
   .main-layout {
     flex-direction: column;

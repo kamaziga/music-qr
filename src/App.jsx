@@ -1,13 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
 import './App.css';
 
 const CLOUD_NAME = 'imnabpzv';
 const UPLOAD_PRESET = 'music-upload';
 
+// Анимационные варианты для framer-motion
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } }
+};
+
+const stagger = {
+  animate: { transition: { staggerChildren: 0.1 } }
+};
+
+const cardHover = {
+  whileHover: { scale: 1.02, boxShadow: '0 10px 25px rgba(108, 99, 255, 0.3)' },
+  whileTap: { scale: 0.98 }
+};
+
 function App() {
   const [file, setFile] = useState(null);
-  const [currentTrack, setCurrentTrack] = useState(null); // { id, name, url, date }
+  const [currentTrack, setCurrentTrack] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -22,34 +39,27 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Загрузка истории из localStorage
+  // Загрузка истории
   useEffect(() => {
-    const savedHistory = localStorage.getItem('musicHistory');
-    if (savedHistory) {
-      const parsed = JSON.parse(savedHistory);
+    const saved = localStorage.getItem('musicHistory');
+    if (saved) {
+      const parsed = JSON.parse(saved);
       setHistory(parsed);
-      if (parsed.length > 0) {
-        setCurrentTrack(parsed[0]); // Автоматически выбираем последний загруженный
-      }
+      if (parsed.length > 0) setCurrentTrack(parsed[0]);
     }
   }, []);
 
-  // Сохранение истории при изменении
   useEffect(() => {
     localStorage.setItem('musicHistory', JSON.stringify(history));
   }, [history]);
 
-  // Инициализация аудиоконтекста и анализатора при смене трека
+  // Сброс при смене трека
   useEffect(() => {
     if (!currentTrack) return;
-    // Сбрасываем состояния
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
-    if (audioRef.current) {
-      audioRef.current.load();
-    }
-    // Закрываем старый контекст
+    if (audioRef.current) audioRef.current.load();
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close();
     }
@@ -57,7 +67,7 @@ function App() {
     analyserRef.current = null;
   }, [currentTrack]);
 
-  // Настройка визуализатора после взаимодействия
+  // Визуализатор с аудиоконтекстом
   const setupAudioContext = useCallback(() => {
     if (!audioRef.current || !canvasRef.current) return;
     if (!audioContextRef.current) {
@@ -76,7 +86,6 @@ function App() {
     }
   }, []);
 
-  // Анимация визуализатора
   const drawVisualizer = useCallback(() => {
     if (!analyserRef.current || !canvasRef.current) return;
     const analyser = analyserRef.current;
@@ -88,11 +97,9 @@ function App() {
     const draw = () => {
       animationRef.current = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
-
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const barWidth = (canvas.width / bufferLength) * 2.5;
       let x = 0;
-
       for (let i = 0; i < bufferLength; i++) {
         const barHeight = (dataArray[i] / 255) * canvas.height;
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
@@ -106,7 +113,6 @@ function App() {
     draw();
   }, []);
 
-  // Запуск/остановка визуализации
   useEffect(() => {
     if (isPlaying) {
       setupAudioContext();
@@ -122,7 +128,7 @@ function App() {
     };
   }, [isPlaying, setupAudioContext, drawVisualizer]);
 
-  // Обработчики аудио
+  // Управление воспроизведением
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) {
@@ -156,6 +162,7 @@ function App() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+  // Загрузка файла
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (selected && selected.type === 'audio/mpeg') {
@@ -185,7 +192,7 @@ function App() {
         url: data.secure_url,
         date: new Date().toLocaleString(),
       };
-      setHistory((prev) => [newTrack, ...prev]);
+      setHistory(prev => [newTrack, ...prev]);
       setCurrentTrack(newTrack);
     } catch (error) {
       alert('Не удалось загрузить трек');
@@ -195,14 +202,12 @@ function App() {
     }
   };
 
-  const selectTrack = (track) => {
-    setCurrentTrack(track);
-  };
+  const selectTrack = (track) => setCurrentTrack(track);
 
   const downloadQR = () => {
-    const svgElement = document.querySelector('.qr-wrapper svg');
-    if (!svgElement) return;
-    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const svg = document.querySelector('.qr-wrapper svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
@@ -247,15 +252,15 @@ function App() {
 
   return (
     <div className="app">
-      {/* Анимированный фон */}
+      {/* Фоновые живые круги */}
       <div className="bg-animation">
         <div className="circle circle1"></div>
         <div className="circle circle2"></div>
         <div className="circle circle3"></div>
       </div>
 
-      <div className="main-layout">
-        {/* Боковая панель с историей */}
+      <motion.div className="main-layout" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+        {/* Сайдбар */}
         <aside className="sidebar">
           <div className="sidebar-header">
             <span className="logo-icon">🎧</span>
@@ -266,9 +271,19 @@ function App() {
               {file ? file.name : 'Выберите MP3 файл'}
             </label>
             <input type="file" accept=".mp3" onChange={handleFileChange} id="fileInput" hidden />
-            <button className="upload-btn-side" onClick={handleUpload} disabled={!file || loading}>
-              {loading ? <span className="spinner"></span> : 'Загрузить'}
-            </button>
+            <motion.button
+              className="upload-btn-side"
+              onClick={handleUpload}
+              disabled={!file || loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {loading ? (
+                <div className="skeleton-loader" style={{ width: '80px', height: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)' }} />
+              ) : (
+                'Загрузить'
+              )}
+            </motion.button>
           </div>
           <div className="playlist">
             <div className="playlist-header">
@@ -277,94 +292,124 @@ function App() {
                 <button className="clear-btn" onClick={clearHistory}>Очистить</button>
               )}
             </div>
-            <ul className="playlist-items">
-              {history.map((track) => (
-                <li
-                  key={track.id}
-                  className={`playlist-item ${currentTrack?.id === track.id ? 'active' : ''}`}
-                  onClick={() => selectTrack(track)}
-                >
-                  <div className="item-cover" style={{ background: generateCoverGradient(track.name) }}></div>
-                  <div className="item-info">
-                    <span className="item-name">{track.name}</span>
-                    <span className="item-date">{track.date}</span>
-                  </div>
-                </li>
-              ))}
+            <motion.ul className="playlist-items" variants={stagger} initial="initial" animate="animate">
+              <AnimatePresence>
+                {history.map(track => (
+                  <motion.li
+                    key={track.id}
+                    variants={fadeInUp}
+                    exit={{ opacity: 0, x: -20 }}
+                    className={`playlist-item ${currentTrack?.id === track.id ? 'active' : ''}`}
+                    onClick={() => selectTrack(track)}
+                    whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.03)' }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    <div className="item-cover" style={{ background: generateCoverGradient(track.name) }}></div>
+                    <div className="item-info">
+                      <span className="item-name">{track.name}</span>
+                      <span className="item-date">{track.date}</span>
+                    </div>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
               {history.length === 0 && (
                 <p className="empty-playlist">Загрузите первый трек</p>
               )}
-            </ul>
+            </motion.ul>
           </div>
         </aside>
 
-        {/* Основной контент */}
+        {/* Главный контент */}
         <main className="main-content">
-          {currentTrack ? (
-            <div className="player-card">
-              <div className="cover-section">
-                <div
-                  className="cover-art"
-                  style={{ background: generateCoverGradient(currentTrack.name) }}
-                >
-                  <span className="cover-text">{currentTrack.name.charAt(0).toUpperCase()}</span>
-                </div>
-                <div className="visualizer-container">
-                  <canvas ref={canvasRef} className="visualizer" width="300" height="60"></canvas>
-                </div>
-              </div>
-
-              <div className="track-details">
-                <h2 className="track-title">{currentTrack.name}</h2>
-                <div className="track-actions">
-                  <button className="action-btn" onClick={() => copyToClipboard(currentTrack.url)}>
-                    {copied ? '✅ Ссылка скопирована' : '📋 Копировать ссылку'}
-                  </button>
-                </div>
-
-                <div className="player-controls">
-                  <div className="progress-area">
-                    <span className="time">{formatTime(currentTime)}</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={duration ? (currentTime / duration) * 100 : 0}
-                      onChange={handleSeek}
-                      className="progress-bar"
-                    />
-                    <span className="time">{formatTime(duration)}</span>
+          <AnimatePresence mode="wait">
+            {currentTrack ? (
+              <motion.div
+                key={currentTrack.id}
+                className="player-card"
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={{ duration: 0.4 }}
+              >
+                <div className="cover-section">
+                  <motion.div
+                    className="cover-art"
+                    style={{ background: generateCoverGradient(currentTrack.name) }}
+                    whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(108, 99, 255, 0.4)' }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    <span className="cover-text">{currentTrack.name.charAt(0).toUpperCase()}</span>
+                  </motion.div>
+                  <div className="visualizer-container">
+                    <canvas ref={canvasRef} className="visualizer" width="300" height="60"></canvas>
                   </div>
-                  <button className="play-btn-main" onClick={togglePlay}>
-                    {isPlaying ? '⏸️ Пауза' : '▶️ Играть'}
-                  </button>
                 </div>
 
-                <div className="qr-section">
-                  <div className="qr-wrapper">
-                    <QRCode value={currentTrack.url} size={140} bgColor="#1e1e2f" fgColor="#ffffff" />
+                <div className="track-details">
+                  <motion.h2 className="track-title" layout>{currentTrack.name}</motion.h2>
+                  <div className="track-actions">
+                    <motion.button
+                      className="action-btn"
+                      onClick={() => copyToClipboard(currentTrack.url)}
+                      whileHover={{ scale: 1.03, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {copied ? '✅ Ссылка скопирована' : '📋 Копировать ссылку'}
+                    </motion.button>
                   </div>
-                  <button className="btn-outline" onClick={downloadQR}>⬇️ Скачать QR</button>
-                </div>
 
-                <audio
-                  ref={audioRef}
-                  src={currentTrack.url}
-                  crossOrigin="anonymous"
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onEnded={() => setIsPlaying(false)}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-icon">🎵</div>
-              <h2>Выберите трек из плейлиста или загрузите новый</h2>
-            </div>
-          )}
+                  <div className="player-controls">
+                    <div className="progress-area">
+                      <span className="time">{formatTime(currentTime)}</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={duration ? (currentTime / duration) * 100 : 0}
+                        onChange={handleSeek}
+                        className="progress-bar"
+                      />
+                      <span className="time">{formatTime(duration)}</span>
+                    </div>
+                    <motion.button
+                      className="play-btn-main"
+                      onClick={togglePlay}
+                      whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(108, 99, 255, 0.6)' }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isPlaying ? '⏸️ Пауза' : '▶️ Играть'}
+                    </motion.button>
+                  </div>
+
+                  <div className="qr-section">
+                    <div className="qr-wrapper">
+                      <QRCode value={currentTrack.url} size={140} bgColor="#1e1e2f" fgColor="#ffffff" />
+                    </div>
+                    <motion.button className="btn-outline" onClick={downloadQR} whileHover={{ scale: 1.03, borderColor: '#6c63ff' }} whileTap={{ scale: 0.97 }}>
+                      ⬇️ Скачать QR
+                    </motion.button>
+                  </div>
+
+                  <audio
+                    ref={audioRef}
+                    src={currentTrack.url}
+                    crossOrigin="anonymous"
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onEnded={() => setIsPlaying(false)}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div className="empty-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <div className="empty-icon">🎵</div>
+                <h2>Выберите трек из плейлиста или загрузите новый</h2>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
-      </div>
+      </motion.div>
     </div>
   );
 }
