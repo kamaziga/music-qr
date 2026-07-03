@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import QRCode from 'react-qr-code';
 import './App.css';
 
@@ -13,6 +13,13 @@ function App() {
   const [history, setHistory] = useState([]);
   const [copied, setCopied] = useState(false);
 
+  // Аудиоплеер
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const qrRef = useRef(null); // реф на QR-код для скачивания
+
   useEffect(() => {
     const saved = localStorage.getItem('musicHistory');
     if (saved) setHistory(JSON.parse(saved));
@@ -21,6 +28,45 @@ function App() {
   useEffect(() => {
     localStorage.setItem('musicHistory', JSON.stringify(history));
   }, [history]);
+
+  // Обработчики аудио
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e) => {
+    const seekTime = (e.target.value / 100) * duration;
+    if (audioRef.current) {
+      audioRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    }
+  };
+
+  const formatTime = (time) => {
+    if (isNaN(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
@@ -49,6 +95,10 @@ function App() {
       setFileUrl(url);
       setFileName(file.name);
       setHistory(prev => [{ id: Date.now(), name: file.name, url, date: new Date().toLocaleString() }, ...prev]);
+      // Сброс плеера
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
     } catch (error) {
       alert('Не удалось загрузить трек');
     } finally {
@@ -57,27 +107,27 @@ function App() {
     }
   };
 
-  const downloadQR = (url, name) => {
-    const svg = document.querySelector('svg');
-    if (svg) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const imgUrl = URL.createObjectURL(svgBlob);
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        const link = document.createElement('a');
-        link.download = `QR_${name || 'track'}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        URL.revokeObjectURL(imgUrl);
-      };
-      img.src = imgUrl;
-    }
+  // Скачивание QR с использованием рефа
+  const downloadQR = () => {
+    const svgElement = qrRef.current?.querySelector('svg');
+    if (!svgElement) return;
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const imgUrl = URL.createObjectURL(svgBlob);
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const link = document.createElement('a');
+      link.download = `QR_${fileName || 'track'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      URL.revokeObjectURL(imgUrl);
+    };
+    img.src = imgUrl;
   };
 
   const copyToClipboard = (text) => {
@@ -126,9 +176,9 @@ function App() {
           <section className="result-section">
             <div className="result-card">
               <div className="result-grid">
-                <div className="qr-box">
+                <div className="qr-box" ref={qrRef}>
                   <QRCode value={fileUrl} size={160} bgColor="#1e1e2f" fgColor="#ffffff" />
-                  <button className="btn-outline" onClick={() => downloadQR(fileUrl, fileName)}>
+                  <button className="btn-outline" onClick={downloadQR}>
                     ⬇️ Скачать QR
                   </button>
                 </div>
@@ -138,7 +188,32 @@ function App() {
                     <input type="text" value={fileUrl} readOnly />
                     <button onClick={() => copyToClipboard(fileUrl)}>{copied ? '✅' : '📋'}</button>
                   </div>
-                  <audio controls src={fileUrl} className="player" />
+
+                  {/* Кастомный плеер */}
+                  <div className="custom-player">
+                    <audio
+                      ref={audioRef}
+                      src={fileUrl}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      onEnded={() => setIsPlaying(false)}
+                    />
+                    <button className="play-btn" onClick={togglePlay}>
+                      {isPlaying ? '⏸️' : '▶️'}
+                    </button>
+                    <div className="progress-container">
+                      <span className="time">{formatTime(currentTime)}</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={duration ? (currentTime / duration) * 100 : 0}
+                        onChange={handleSeek}
+                        className="progress-bar"
+                      />
+                      <span className="time">{formatTime(duration)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
